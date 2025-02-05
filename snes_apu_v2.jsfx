@@ -32,8 +32,9 @@ gfx_set(1);
 gfx_x = 0;
 gfx_y = 0;
 gfx_printf("delta:    %02f\n", phase);
-gfx_printf("measured: %02f", frequency+phase);
-gfx_printf("Version 2");
+gfx_printf("measured: %02f\n", frequency+phase);
+gfx_printf("srate:  %d\n", srate);
+gfx_printf("Version 2\n");
 
 @slider
 phase = frequency;

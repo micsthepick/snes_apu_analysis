@@ -4,7 +4,7 @@ from pydub import AudioSegment
 from argparse import ArgumentParser
 import numpy as np
 
-def main(in_file, out_file, bias):
+def main(in_file, out_file, bias, srate):
     stream = AudioSegment.from_file(in_file)
     sample_range = stream.sample_width
     mapping = {1: np.uint8, 2: np.int16, 4: np.int32}
@@ -17,7 +17,7 @@ def main(in_file, out_file, bias):
     max_val = np.iinfo(dtype).max
     min_val = np.iinfo(dtype).min
     print(stream.frame_rate)
-    samples = ((samples - min_val) / (max_val - min_val) * 2 - 1) * stream.frame_rate + bias
+    samples = ((samples - min_val) / (max_val - min_val) * 2 - 1) * (srate if srate > 0 else stream.frame_rate) + bias
 
     if out_file is not None:
         with open(out_file, 'wb') as of:
@@ -49,6 +49,13 @@ if __name__ == "__main__":
          " will be added to the multiplied signal to recover the actual frequency if provided."
     )
     ap.add_argument(
+        "-r",
+        "--srate",
+        type=float,
+        default=0,
+        help="the samplerate that the effect was originally applied with."
+    )
+    ap.add_argument(
         "-o",
         "--outfile",
         default=None,
@@ -58,4 +65,5 @@ if __name__ == "__main__":
     in_file = config.infile.strip()
     out_file = None if config.outfile is None else config.outfile.strip()
     bias = config.sum
-    main(in_file, out_file, bias)
+    rate = config.srate
+    main(in_file, out_file, bias, srate)
