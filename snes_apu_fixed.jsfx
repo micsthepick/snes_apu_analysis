@@ -1,0 +1,76 @@
+desc:testing SDR
+
+slider1:frequency=8020<7000,9000,1>target freq
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+
+@init
+function lop_do(signal) (
+  this.out += this.coeff*(signal - this.out); 
+);
+
+function lop_init(freq)
+local(freq)
+(
+  this.coeff = 1-exp( -$pi * freq / srate);
+  this.out = 0;
+  freq;
+);
+
+phase = 0;
+ph = 0;
+
+@gfx 600 600
+gfx_set(0);
+gfx_rect(0, 0, 600, 600);
+gfx_set(1);
+gfx_x = 0;
+gfx_y = 0;
+gfx_printf("delta:    %02f\n", phase);
+gfx_printf("measured: %02f", frequency+phase);
+
+@slider
+lp_freq = 1200;
+lpL1.lop_init(lp_freq);
+lpR1.lop_init(lp_freq);
+lpL2.lop_init(lp_freq);
+lpR2.lop_init(lp_freq);
+lpL3.lop_init(lp_freq);
+lpR3.lop_init(lp_freq);
+lpL4.lop_init(lp_freq);
+lpR4.lop_init(lp_freq);
+out_del_freq.lop_init(2);
+
+@sample
+C = (spl0 + spl1)*0.5;
+spl0 = spl1 = abs(C) < 0.000000001 ? 0 : C;
+
+spl0 *= cos(2*$pi*ph);
+spl1 *= sin(2*$pi*ph);
+ph += frequency / srate;
+
+l1 = spl0;
+l2 = lpL1.lop_do(l1);
+l3 = lpL2.lop_do(l2);
+l4 = lpL3.lop_do(l3);
+l5 = lpL4.lop_do(l4);
+r1 = spl1;
+r2 = lpR1.lop_do(r1);
+r3 = lpR2.lop_do(r2);
+r4 = lpR3.lop_do(r3);
+r5 = lpR4.lop_do(r4);
+spl0 = l5;
+spl1 = r5;
+
+real = spl0*oldL+spl1*oldR;
+imag = spl0*oldR-spl1*oldL;
+oldL = spl0;
+oldR = spl1;
+df = atan2(imag, real)/$pi/2*srate;
+avg_df = out_del_freq.lop_do(df);
+spl1 = spl0 = avg_df/srate;
+phase = avg_df;
