@@ -12,3 +12,6 @@ then making sure to remember what samplerate the effect was running under, use t
 ```
 python ./visualize.py -i <input file> -r <srate as reported by plugin> -s <bias (first slider's value)> [<-o optional_output_file>]
 ```
+
+## THANKS
+- NobodyNada - spctest code based on my specified waveform
