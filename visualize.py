@@ -1,23 +1,23 @@
 
 from matplotlib import pyplot as plt
+import matplotlib.ticker as mticker
 from pydub import AudioSegment
 from argparse import ArgumentParser
 import numpy as np
 
 def main(in_file, out_file, bias, srate):
     stream = AudioSegment.from_file(in_file)
-    sample_range = stream.sample_width
-    mapping = {1: np.uint8, 2: np.int16, 4: np.int32}
-    dtype = mapping[sample_range]
-    samples = np.array(stream.get_array_of_samples(), dtype=np.float32)
+    samples = np.array(stream.get_array_of_samples())
+
+    dtype = samples.dtype
 
     if stream.channels > 1:
         samples = samples[::stream.channels]
 
-    max_val = np.iinfo(dtype).max
-    min_val = np.iinfo(dtype).min
-    print(stream.frame_rate)
-    samples = ((samples - min_val) / (max_val - min_val) * 2 - 1) * (srate if srate > 0 else stream.frame_rate) + bias
+    if (samples.dtype not in [np.float32, np.float64]):
+        max_val = np.iinfo(dtype).max
+        min_val = np.iinfo(dtype).min
+        samples = ((np.array(samples, dtype=np.float64) - min_val) / (max_val - min_val) * 2 - 1) * (srate if srate > 0 else stream.frame_rate) + bias
 
     if out_file is not None:
         with open(out_file, 'wb') as of:
@@ -25,8 +25,12 @@ def main(in_file, out_file, bias, srate):
 
     t = np.arange(len(samples))/stream.frame_rate
 
-    plt.plot(t, samples)
-    plt.ylabel("delta " if bias == 0 else "" + "frequency (Hz)")
+    plt.plot(t, samples/1000)
+    plt.ylabel(("delta " if bias == 0 else "") + "frequency (KHz)")
+    ax = plt.gca()  # Get current axis
+    formatter = mticker.ScalarFormatter(useOffset=False, useMathText=False)
+    formatter.set_scientific(False)
+    ax.yaxis.set_major_formatter(formatter)
     plt.xlabel("time (s)")
     plt.show()
 
@@ -38,6 +42,7 @@ if __name__ == "__main__":
     ap.add_argument(
         "-i",
         "--infile",
+        required=True,
         help="the file to process"
     )
     ap.add_argument(
@@ -65,5 +70,5 @@ if __name__ == "__main__":
     in_file = config.infile.strip()
     out_file = None if config.outfile is None else config.outfile.strip()
     bias = config.sum
-    rate = config.srate
+    srate = config.srate
     main(in_file, out_file, bias, srate)

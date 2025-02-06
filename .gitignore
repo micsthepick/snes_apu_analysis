@@ -9,3 +9,7 @@
 *.avi
 *.ts
 *.m3u8
+__pycache__
+*.pyc
+*.pyd
+.DS_Store
