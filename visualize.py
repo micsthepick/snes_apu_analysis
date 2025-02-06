@@ -25,8 +25,8 @@ def main(in_file, out_file, bias, srate):
 
     t = np.arange(len(samples))/stream.frame_rate
 
-    plt.plot(t, samples/1000)
-    plt.ylabel(("delta " if bias == 0 else "") + "frequency (KHz)")
+    plt.plot(t, samples)
+    plt.ylabel(("delta " if bias == 0 else "") + "frequency (Hz)")
     ax = plt.gca()  # Get current axis
     formatter = mticker.ScalarFormatter(useOffset=False, useMathText=False)
     formatter.set_scientific(False)

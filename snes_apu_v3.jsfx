@@ -1,6 +1,6 @@
 desc:testing SDR
 
-slider1:frequency=8020<7000,9000,1>target freq
+slider1:frequency=8000<7000,9000,1>target freq
 slider2:bwidth=2400<100,5000,1>Bandwidth
 slider3:filter=200<20,500>output filtering (lower is smoother)
 
