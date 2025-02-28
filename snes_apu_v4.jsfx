@@ -1,0 +1,95 @@
+desc:testing SDR
+
+slider1:frequency=8000<7000,9000,1>target freq
+slider2:bwidth=2400<100,5000,1>Bandwidth (Range)
+slider3:filter=200<20,500>output filtering (lower is smoother)
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+
+@init
+function lop_do(signal) (
+  this.out += this.coeff*(signal - this.out);
+);
+
+function lop_set(freq)
+(
+  this.coeff = 1-exp(-$pi*freq/srate);
+  freq;
+);
+
+function butbp_set(freq, bw)
+local (c1, c2)
+(
+    this.freq = min(freq, srate*0.9);
+    this.bw = min(bw, (srate/2 - this.freq)*0.99);
+    c1 = 1 / tan(this.bw*$pi/srate);
+    c2 = 2*cos(2*this.freq*$pi/srate);
+    this.a0 = 1 / (1+c1);
+    this.a1 = 0;
+    this.a2 = -this.a0;
+    this.b1 = c1 * c2 * this.a2;
+    this.b2 = (c-1) * this.a0;
+);
+
+function butbp_do(in)
+local (out)
+(
+    out = this.a0*in+this.a2*this.x2-this.b1*this.y1-this.b2*this.y2;
+    this.x2 = this.x1; this.x1 = in; this.y2 = this.y1; this.y1 = out;
+    out;
+);
+
+phase = frequency;
+ph = 0;
+
+@gfx 600 600
+gfx_set(0);
+gfx_rect(0, 0, 600, 600);
+gfx_set(1);
+gfx_x = 0;
+gfx_y = 0;
+gfx_printf("delta:    %02f\n", phase);
+gfx_printf("measured: %02f\n", frequency+phase);
+gfx_printf("srate:    %d\n", srate);
+gfx_printf("\nVersion 4\n");
+
+@slider
+bp1.butbp_set(frequency, bwidth);
+bp2.butbp_set(frequency, bwidth);
+lpL1.lop_set(bwidth);
+lpR1.lop_set(bwidth);
+lpL2.lop_set(bwidth);
+lpR2.lop_set(bwidth);
+lpL3.lop_set(bwidth);
+lpR3.lop_set(bwidth);
+lpL4.lop_set(bwidth);
+lpR4.lop_set(bwidth);
+out_del_freq1.lop_set(filter);
+out_del_freq2.lop_set(filter);
+out_del_freq3.lop_set(filter);
+out_del_freq4.lop_set(filter);
+out_del_freq5.lop_set(filter);
+
+@sample
+C = bp2.butbp_do(bp1.butbp_do(spl0 + spl1));
+spl0 = spl1 = C;
+
+spl0 *= cos(2*$pi*ph);
+spl1 *= sin(2*$pi*ph);
+ph += frequency / srate;
+
+spl0 = lpL4.lop_do(lpL3.lop_do(lpL2.lop_do(lpL1.lop_do(spl0))));
+spl1 = lpR4.lop_do(lpR3.lop_do(lpR2.lop_do(lpR1.lop_do(spl1))));
+
+real = spl0*oldL+spl1*oldR;
+imag = spl0*oldR-spl1*oldL;
+oldL = spl0;
+oldR = spl1;
+df = atan2(imag, real)/$pi/2;
+avg_df = out_del_freq1.lop_do(out_del_freq2.lop_do(out_del_freq3.lop_do(out_del_freq4.lop_do(out_del_freq5.lop_do(df)))));
+spl1 = spl0 = avg_df;
+phase = avg_df*srate;
