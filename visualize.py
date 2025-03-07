@@ -5,7 +5,7 @@ from pydub import AudioSegment
 from argparse import ArgumentParser
 import numpy as np
 
-def main(in_file, out_file, bias, srate):
+def main(in_file, out_file, bias, srate, use_csv):
     stream = AudioSegment.from_file(in_file)
     samples = np.array(stream.get_array_of_samples())
 
@@ -21,7 +21,10 @@ def main(in_file, out_file, bias, srate):
 
     if out_file is not None:
         with open(out_file, 'wb') as of:
-            of.write(samples.tobytes())
+            if use_csv:
+                numpy.savetxt(of, samples, delimiter="\n")
+            else:
+                of.write(samples.tobytes())
 
     t = np.arange(len(samples))/stream.frame_rate
 
@@ -66,9 +69,15 @@ if __name__ == "__main__":
         default=None,
         help="the file (raw) to output scaled signal to, if not provided will just visualize the output"
     )
+    ap.add_argument(
+        "--use_csv"
+        default=False
+        help="use csv as output format (must provide --outfile or -o argument)"
+    )
     config = ap.parse_args()
     in_file = config.infile.strip()
     out_file = None if config.outfile is None else config.outfile.strip()
     bias = config.sum
     srate = config.srate
-    main(in_file, out_file, bias, srate)
+    use_csv = config.use_csv
+    main(in_file, out_file, bias, srate, use_csv)
