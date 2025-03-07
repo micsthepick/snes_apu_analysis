@@ -5,26 +5,28 @@ from pydub import AudioSegment
 from argparse import ArgumentParser
 import numpy as np
 
-def main(in_file, out_file, bias, srate, use_csv):
+def main(in_file, out_file, bias, srate, use_csv, decimation):
     stream = AudioSegment.from_file(in_file)
     samples = np.array(stream.get_array_of_samples())
 
     dtype = samples.dtype
 
     if stream.channels > 1:
-        samples = samples[::stream.channels]
+        samples = samples[::stream.channels*decimation]
 
     if (samples.dtype not in [np.float32, np.float64]):
         max_val = np.iinfo(dtype).max
         min_val = np.iinfo(dtype).min
         samples = ((np.array(samples, dtype=np.float64) - min_val) / (max_val - min_val) * 2 - 1) * (srate if srate > 0 else stream.frame_rate) + bias
 
+    times = np.arange(0, len(samples) / srate * decimation, decimation / srate)
+
     if out_file is not None:
-        with open(out_file, 'wb') as of:
-            if use_csv:
-                numpy.savetxt(of, samples, delimiter="\n")
-            else:
-                of.write(samples.tobytes())
+        if use_csv:
+            numpy.savetxt(out_file, np.array([times, samples]))
+        else:
+            with open(out_file, 'wb') as of:
+                of.write(np.ravel([times, samples]))
 
     t = np.arange(len(samples))/stream.frame_rate
 
@@ -70,8 +72,15 @@ if __name__ == "__main__":
         help="the file (raw) to output scaled signal to, if not provided will just visualize the output"
     )
     ap.add_argument(
-        "--use_csv"
-        default=False
+        "-d",
+        "--decimation",
+        default=None,
+        type=int,
+        help="throw away all but every N samples"
+    )
+    ap.add_argument(
+        "--use_csv",
+        default=False,
         help="use csv as output format (must provide --outfile or -o argument)"
     )
     config = ap.parse_args()
@@ -80,4 +89,5 @@ if __name__ == "__main__":
     bias = config.sum
     srate = config.srate
     use_csv = config.use_csv
-    main(in_file, out_file, bias, srate, use_csv)
+    decimation = config.decimation
+    main(in_file, out_file, bias, srate, use_csv, decimation)
